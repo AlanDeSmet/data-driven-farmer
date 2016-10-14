@@ -27,7 +27,7 @@ def extract_content(yaml_tree):
 def fix_type(x):
 	if len(x) == 0:
 		return x
-	if re.search("[^0-9]", x) is None:
+	if re.match("-?[0-9]*$", x) is not None:
 		return int(x)
 	return x
 
@@ -62,43 +62,58 @@ class StardewCrop:
 		self.seed_id = id
 		self.seed_name = objrecord[0]
 
-		self.UNKNOWN1 = croprecord[0] # String of space seperated integers
-		self.seasons = croprecord[1].split(" ")
-		self.UNKNOWN2 = croprecord[2] # Number
+		self.growth_days = [ int(x) for x in croprecord[0].split(" ") ] # Grow cylce? Days in each stage, starting with planted seed?
+		croprecord[0] # String of space seperated integers
+
+		seasons = croprecord[1].split(" ")
+		self.season_spring = True if 'spring' in seasons else False
+		self.season_summer = True if 'summer' in seasons else False
+		self.season_fall = True if 'fall' in seasons else False
+		self.season_winter = True if 'winter' in seasons else False
+
+		self.image_index = croprecord[2] # Number
 		self.plant_id = croprecord[3] # Plant ID
-		self.UNKNOWN4 = croprecord[4] # Number? -1?
-		self.UNKNOWN5 = croprecord[5] # Number? 0 or 1?
-		self.UNKNOWN6 = croprecord[6] # true/false?
-		self.UNKNOWN7 = croprecord[7] # true/false?
-		self.UNKNOWN8 = croprecord[8] # true/false?
+		self.regrowth_days = croprecord[4]
+		if self.regrowth_days == -1:
+			self.regrowth_days = None
+		self.need_scytheqq = True if croprecord[5] == 1 else False
+		self.UNKNOWN6 = croprecord[6] # true/false + numbers if true?
+		self.impassible = True if croprecord[7] == "true" else False
+		self.UNKNOWN8 = croprecord[8] # true/false + numbers if true?
+
+		#print repr(objinfo_raw.keys())
+		#print repr(self.plant_id)
+		#sys.exit(1)
 
 		plant_obj_record = objinfo_raw[self.plant_id]
 		self.crop_name = plant_obj_record[0]
-		self.plant_UNKNOWN1 = plant_obj_record[1] # int?
+		self.plant_base_sell_price = plant_obj_record[1]
 		self.plant_UNKNOWN2 = plant_obj_record[2] # int?
-		self.plant_UNKNOWN3 = plant_obj_record[3] # "Basic -79"
+		self.plant_UNKNOWN3 = plant_obj_record[3] # "Basic -##" or "Seeds -##"
 		self.plant_description = plant_obj_record[4] # 
 
 	def __str__(self):
-		return " ".join([ str(x) for x in [
+		return "\t".join([ str(x) for x in [
 			self.seed_id,
 			self.seed_name,
-			self.UNKNOWN1,
-			self.seasons,
-			self.UNKNOWN2,
-			self.plant_id,
-			self.UNKNOWN4,
-			self.UNKNOWN5,
+			self.growth_days,
+			self.regrowth_days,
+			"spring" if self.season_spring else ".",
+			"summer" if self.season_summer else ".",
+			"fall" if self.season_fall else ".",
+			"winter" if self.season_winter else ".",
+			#self.image_index,
+			"scythe" if self.need_scytheqq else "hand",
 			self.UNKNOWN6,
-			self.UNKNOWN7,
+			"impassible" if self.impassible else ".",
 			self.UNKNOWN8,
 			"->",
 			self.plant_id,
 			self.crop_name,
-			self.plant_UNKNOWN1,
+			str(self.plant_base_sell_price)+"g",
 			self.plant_UNKNOWN2,
 			self.plant_UNKNOWN3,
-			self.plant_description,
+			#self.plant_description,
 			]
 			])
 
