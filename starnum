@@ -95,7 +95,6 @@ class StardewCrop:
 		else:
 			sys.stderr.write("Unable to parse crop record field 6: "+croprecord[6])
 			sys.exit(1)
-		self.UNKNOWN6 = croprecord[6] # true/false + numbers if true?
 
 		self.impassible = True if croprecord[7] == "true" else False
 
