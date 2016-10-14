@@ -77,8 +77,28 @@ class StardewCrop:
 		if self.regrowth_days == -1:
 			self.regrowth_days = None
 		self.need_scytheqq = True if croprecord[5] == 1 else False
+
+		if croprecord[6] == 'false':
+			(tmp1, tmp2, tmp3, tmp4, tmp5) = (False, None, None, None, None)
+			self.UNKNOWN6 = False
+			self.UNKNOWN6a = None
+			self.UNKNOWN6b = None
+			self.UNKNOWN6c = None
+			self.UNKNOWN6d = None
+		elif croprecord[6].find("true ") == 0:
+			(tmp1, tmp2, tmp3, tmp4, tmp5) = croprecord[6].split(" ")
+			self.UNKNOWN6 =  True
+			self.UNKNOWN6a = int(tmp2)
+			self.UNKNOWN6b = int(tmp3)
+			self.UNKNOWN6c = int(tmp4)
+			self.UNKNOWN6d = float(tmp5)
+		else:
+			sys.stderr.write("Unable to parse crop record field 6: "+croprecord[6])
+			sys.exit(1)
 		self.UNKNOWN6 = croprecord[6] # true/false + numbers if true?
+
 		self.impassible = True if croprecord[7] == "true" else False
+
 		self.UNKNOWN8 = croprecord[8] # true/false + numbers if true?
 
 		#print repr(objinfo_raw.keys())
@@ -105,6 +125,12 @@ class StardewCrop:
 			#self.image_index,
 			"scythe" if self.need_scytheqq else "hand",
 			self.UNKNOWN6,
+			"(",
+			self.UNKNOWN6a,
+			self.UNKNOWN6b,
+			self.UNKNOWN6c,
+			self.UNKNOWN6d,
+			")",
 			"impassible" if self.impassible else ".",
 			self.UNKNOWN8,
 			"->",
