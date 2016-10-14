@@ -1,0 +1,134 @@
+#! /usr/bin/python
+import yaml
+import sys
+import re
+from os.path import join as joinpath
+
+def main():
+	data = StardewData("Unpacked")
+	#crop_yaml = load_yaml("Unpacked/Data/Crops.yaml")
+	#object_yaml = load_yaml("Unpacked/Data/ObjectInformation.yaml")
+
+	#crops_raw = load_and_expand_yaml_tree("Unpacked/Data/Crops.yaml")
+	#import pprint
+	#pp = pprint.PrettyPrinter()
+	#print pp.pprint(crops_raw)
+
+def load_yaml_tree(filename):
+	with open(filename) as f:
+		return yaml.load(f)
+
+def extract_content(yaml_tree):
+	if 'content' in yaml_tree:
+		return yaml_tree['content']
+	sys.stderr.write("Warning: Tree does not contain a 'content' node.")
+	return yaml_tree
+
+def fix_type(x):
+	if len(x) == 0:
+		return x
+	if re.search("[^0-9]", x) is None:
+		return int(x)
+	return x
+
+def expand_slashes_tree(yaml_node):
+	if isinstance(yaml_node, dict):
+		return { k: expand_slashes_tree(v) for (k,v) in yaml_node.iteritems() }
+	elif isinstance(yaml_node, list):
+		return [ expand_slashes_tree(n) for n in yaml_node ]
+	elif isinstance(yaml_node, (str,unicode)):
+		pieces = yaml_node.split("/")	
+		pieces = [ fix_type(x) for x in pieces ]
+		if len(pieces) == 1:
+			return pieces[0]
+		return pieces
+	else:
+		sys.stderr.write("Skipping unknown type {0}".format(type(yaml_node)))
+		return yaml_node
+
+def load_and_expand_yaml_tree(filename):
+	yaml_tree = load_yaml_tree(filename)
+	yaml_tree = extract_content(yaml_tree)
+	yaml_tree = expand_slashes_tree(yaml_tree)
+	return yaml_tree
+
+
+
+class StardewCrop:
+	def __init__(self, id, croprecord, objinfo_raw):
+
+		objrecord = objinfo_raw[id]
+
+		self.seed_id = id
+		self.seed_name = objrecord[0]
+
+		self.UNKNOWN1 = croprecord[0] # String of space seperated integers
+		self.seasons = croprecord[1].split(" ")
+		self.UNKNOWN2 = croprecord[2] # Number
+		self.plant_id = croprecord[3] # Plant ID
+		self.UNKNOWN4 = croprecord[4] # Number? -1?
+		self.UNKNOWN5 = croprecord[5] # Number? 0 or 1?
+		self.UNKNOWN6 = croprecord[6] # true/false?
+		self.UNKNOWN7 = croprecord[7] # true/false?
+		self.UNKNOWN8 = croprecord[8] # true/false?
+
+		plant_obj_record = objinfo_raw[self.plant_id]
+		self.crop_name = plant_obj_record[0]
+		self.plant_UNKNOWN1 = plant_obj_record[1] # int?
+		self.plant_UNKNOWN2 = plant_obj_record[2] # int?
+		self.plant_UNKNOWN3 = plant_obj_record[3] # "Basic -79"
+		self.plant_description = plant_obj_record[4] # 
+
+	def __str__(self):
+		return " ".join([ str(x) for x in [
+			self.seed_id,
+			self.seed_name,
+			self.UNKNOWN1,
+			self.seasons,
+			self.UNKNOWN2,
+			self.plant_id,
+			self.UNKNOWN4,
+			self.UNKNOWN5,
+			self.UNKNOWN6,
+			self.UNKNOWN7,
+			self.UNKNOWN8,
+			"->",
+			self.plant_id,
+			self.crop_name,
+			self.plant_UNKNOWN1,
+			self.plant_UNKNOWN2,
+			self.plant_UNKNOWN3,
+			self.plant_description,
+			]
+			])
+
+class StardewData:
+	def __init__(self, rootdir):
+		crops_raw = load_and_expand_yaml_tree(joinpath(rootdir, "Data", "Crops.yaml"))
+		objinfo_raw = load_and_expand_yaml_tree(joinpath(rootdir, "Data", "ObjectInformation.yaml"))
+
+		import pprint
+		pp = pprint.PrettyPrinter()
+
+		for id in crops_raw:
+			crop_record = crops_raw[id]
+			o = StardewCrop(id, crop_record, objinfo_raw)
+			print o
+			#pp.pprint(o)
+
+
+		#for (id, record) in objinfo_raw.iteritems():
+		#	try:
+		#		o = StardewObject(id, record)
+		#		print o
+		#	except:
+		#		print "Confusing:", id, "" , pp.pprint(record), "DONE"
+		#		raise
+
+
+
+		
+		
+
+sys.exit(main())
+
