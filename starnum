@@ -3,6 +3,7 @@ import yaml
 import sys
 import re
 from os.path import join as joinpath
+import math
 
 def main():
 	data = StardewData("Unpacked")
@@ -154,11 +155,26 @@ class StardewCrop:
 
 		self.plant_description = plant_obj_record[4] # 
 
+	def harvests(self, days):
+		""" Over days, how many harvests from initial planting
+
+		Assumes you replant when you harvest, if it's not a repeating plant
+		"""
+		if self.regrowth_days is not None:
+			return int( math.ceil( (days-self.total_growth_days())/self.regrowth_days ) )
+		else:
+			return int( math.floor( (days-1) / self.total_growth_days()))
+
+	def total_growth_days(self):
+		return sum(self.growth_days)
+		
+
 	def html_header(self):
 		fields = [
 			"P ID / S ID",
 			"Crop / Seed",
 			"Growth Days",
+			"Harvests/28",
 			"Seasons",
 			"Image",
 			"Harvest",
@@ -188,13 +204,14 @@ class StardewCrop:
 		if self.season_fall: seasons.append("fall")
 		if self.season_winter: seasons.append("winter")
 
-		growth = str(sum(self.growth_days))
+		growth = str(self.total_growth_days())
 		if self.regrowth_days is not None:
 			growth += "+"+str(self.regrowth_days)
 		fields = [
 			str(self.plant_id) + " " + str(self.seed_id),
 			self.crop_name + " / " + self.seed_name,
 			growth,
+			self.harvests(28),
 			", ".join(seasons),
 			self.image_index,
 			"scythe" if self.need_scytheqq else "hand",
