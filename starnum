@@ -6,6 +6,24 @@ from os.path import join as joinpath
 
 def main():
 	data = StardewData("Unpacked")
+
+	print """<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+td.n { text-align: right; }
+td,th { border:1px solid #555; }
+table { border-collapse: collapse; }
+</style>
+</head>
+<body>
+<table>
+"""
+	print data.crops.values()[0].html_header()
+	for crop in data.crops.values():
+		print crop.html_body()
+	print "</table></body></html>\n"
+
+
 	#crop_yaml = load_yaml("Unpacked/Data/Crops.yaml")
 	#object_yaml = load_yaml("Unpacked/Data/ObjectInformation.yaml")
 
@@ -61,9 +79,20 @@ class StardewCrop:
 
 		self.seed_id = id
 		self.seed_name = seed_obj_record[0]
-		self.oUNKNOWN1 = seed_obj_record[1]
+		self.seed_half_price = seed_obj_record[1]
 		self.oUNKNOWN2 = seed_obj_record[2]
-		self.oUNKNOWN3 = seed_obj_record[3]
+		if self.oUNKNOWN2 != -300:
+			sys.stderr.write("Seed object {0} has unknown field of {1}, not -300".formaT(self.seed_id, self.oUNKNOWN2))
+
+			# "Basic -##" or "Seeds -##"
+		(self.seed_type, self.seed_type_UNKNOWN) = seed_obj_record[3].split(" ")
+		if self.seed_type != 'Seeds':
+			sys.stderr.write("Seed object {0} has unknown type {1}".format(self.seed_id, self.seed_type))
+			sys.exit(1)
+		if self.seed_type_UNKNOWN != '-74':
+			sys.stderr.write("Seed object {0} has unknown type UNKNOWN {1}".format(self.seed_id, self.seed_type_UNKNOWN))
+			sys.exit(1)
+
 		self.seed_description = seed_obj_record[4]
 
 		self.growth_days = [ int(x) for x in croprecord[0].split(" ") ] # Grow cylce? Days in each stage, starting with planted seed?
@@ -125,6 +154,74 @@ class StardewCrop:
 
 		self.plant_description = plant_obj_record[4] # 
 
+	def html_header(self):
+		fields = [
+			"P ID / S ID",
+			"Crop / Seed",
+			"Growth Days",
+			"Seasons",
+			"Image",
+			"Harvest",
+			"Unk6",
+			"6a",
+			"6b",
+			"6c",
+			"6d",
+			"Pass",
+			"Unk8",
+			"Seed price",
+			"",
+			"Sell Price",
+			"pUnk2",
+			"Type",
+			"Type??",
+			"Seed Description",
+			"Plant Description",
+			]
+		return "<tr><th>"+"</th><th>".join(fields)+"</th></tr>\n";
+
+
+	def html_body(self):
+		seasons = []
+		if self.season_spring: seasons.append("spring")
+		if self.season_summer: seasons.append("summer")
+		if self.season_fall: seasons.append("fall")
+		if self.season_winter: seasons.append("winter")
+
+		growth = str(sum(self.growth_days))
+		if self.regrowth_days is not None:
+			growth += "+"+str(self.regrowth_days)
+		fields = [
+			str(self.plant_id) + " " + str(self.seed_id),
+			self.crop_name + " / " + self.seed_name,
+			growth,
+			", ".join(seasons),
+			self.image_index,
+			"scythe" if self.need_scytheqq else "hand",
+			self.UNKNOWN6,
+			self.UNKNOWN6a if self.UNKNOWN6a is not None else "",
+			self.UNKNOWN6b if self.UNKNOWN6b is not None else "",
+			self.UNKNOWN6c if self.UNKNOWN6c is not None else "",
+			self.UNKNOWN6d if self.UNKNOWN6d is not None else "",
+			"impassible" if self.impassible else "",
+			self.UNKNOWN8a,
+			self.seed_half_price * 2,
+			"",
+			str(self.plant_base_sell_price),
+			self.plant_UNKNOWN2,
+			self.plant_type,
+			self.plant_type_UNKNOWN,
+			self.seed_description,
+			self.plant_description,
+			]
+		newfields = []
+		for f in fields:
+			if isinstance(f, (int,float)):
+				newfields.append('<td class="n">'+str(f)+"</td>")
+			else:
+				newfields.append('<td>'+str(f)+"</td>")
+		return "<tr>"+"".join(newfields)+"</td>\n"
+
 	def __str__(self):
 		return "\t".join([ str(x) for x in [
 			self.plant_id,
@@ -162,25 +259,12 @@ class StardewData:
 		crops_raw = load_and_expand_yaml_tree(joinpath(rootdir, "Data", "Crops.yaml"))
 		objinfo_raw = load_and_expand_yaml_tree(joinpath(rootdir, "Data", "ObjectInformation.yaml"))
 
-		import pprint
-		pp = pprint.PrettyPrinter()
+		self.crops = {}
 
 		for id in crops_raw:
 			crop_record = crops_raw[id]
 			o = StardewCrop(id, crop_record, objinfo_raw)
-			print o
-			#pp.pprint(o)
-
-
-		#for (id, record) in objinfo_raw.iteritems():
-		#	try:
-		#		o = StardewObject(id, record)
-		#		print o
-		#	except:
-		#		print "Confusing:", id, "" , pp.pprint(record), "DONE"
-		#		raise
-
-
+			self.crops[id] = o
 
 		
 		
