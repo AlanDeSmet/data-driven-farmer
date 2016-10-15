@@ -167,7 +167,33 @@ class StardewCrop:
 
 	def total_growth_days(self):
 		return sum(self.growth_days)
+
+	def seed_price(self):
+		return self.seed_half_price*2
+
+	def num_seasons(self):
+		return ((1 if self.season_spring else 0) +
+			(1 if self.season_summer else 0) +
+			(1 if self.season_fall else 0) +
+			(1 if self.season_winter else 0))
+
+	def days_in_season(self): return 28
+
+	def seasonal_revenue(self):
+		days = self.days_in_season() * self.num_seasons()
+		harvests = self.harvests(days)
+		return self.plant_base_sell_price * harvests / self.num_seasons()
+
+	def seasonal_expense(self):
+		if self.regrowth_days is not None:
+			return self.seed_price()
+		else:
+			days = self.days_in_season() * self.num_seasons()
+			harvests = self.harvests(days)
+			return self.seed_price() * harvests / self.num_seasons()
 		
+	def seasonal_profit(self):
+		return self.seasonal_revenue() - self.seasonal_expense()
 
 	def html_header(self):
 		fields = [
@@ -175,6 +201,9 @@ class StardewCrop:
 			"Crop / Seed",
 			"Growth Days",
 			"Harvests/28",
+			"Revenue",
+			"Expense",
+			"Profit",
 			"Seasons",
 			"Image",
 			"Harvest",
@@ -211,7 +240,10 @@ class StardewCrop:
 			str(self.plant_id) + " " + str(self.seed_id),
 			self.crop_name + " / " + self.seed_name,
 			growth,
-			self.harvests(28),
+			self.harvests(self.days_in_season()),
+			self.seasonal_revenue(),
+			self.seasonal_expense(),
+			self.seasonal_profit(),
 			", ".join(seasons),
 			self.image_index,
 			"scythe" if self.need_scytheqq else "hand",
@@ -222,7 +254,7 @@ class StardewCrop:
 			self.UNKNOWN6d if self.UNKNOWN6d is not None else "",
 			"impassible" if self.impassible else "",
 			self.UNKNOWN8a,
-			self.seed_half_price * 2,
+			self.seed_price(),
 			"",
 			str(self.plant_base_sell_price),
 			self.plant_UNKNOWN2,
