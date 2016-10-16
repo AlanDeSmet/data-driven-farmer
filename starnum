@@ -100,7 +100,7 @@ def html_row(fields, alignments = None, header = False):
 			elif alignments[i] == "center": align = 'c'
 			elif alignments[i] == "right": align = 'r'
 			else:
-				raise "Internal error: Unknown alignment type "+alignments[i]
+				raise Exception("Internal error: Unknown alignment type "+alignments[i])
 			ret += ' class="' + align + '"'
 		ret += ">" + fields[i] + "</" + cell + ">"
 	ret += '</tr>\n'
@@ -531,12 +531,13 @@ class StardewSeed (StardewObject):
 		]
 
 	def display_fields_values(self):
+		growth_days = str(self.total_growth_days()) + ("+"+str(self.regrowth_days)) if self.regrowth_days is not None else ""
+		seasons = " ".join([ a[:2] for a in self.seasons])
 		return [
 			str(self.id),
 			self.name,
-			str(self.total_growth_days()) +
-				("+"+str(self.regrowth_days)) if self.regrowth_days is not None else "",
-			" ".join(self.seasons),
+			growth_days,
+			seasons,
 			str(self.price),
 			"scythe" if self.need_scythe else "hand",
 			"impassible" if self.impassible else "",
