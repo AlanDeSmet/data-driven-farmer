@@ -36,12 +36,10 @@ table { border-collapse: collapse; }
 """
 	print html_row(
 		StardewSeed.display_fields_labels(),
-		StardewSeed.display_fields_alignments(),
 		header = True)
 	for id in data.seeds:
 		seed = data.seeds[id]
-		print html_row(seed.display_fields_values(),
-			seed.display_fields_alignments())
+		print html_row(seed.display_fields_values())
 
 	"""
 	print data.crops.values()[0].html_header()
@@ -91,22 +89,51 @@ def load_and_expand_yaml_tree(filename):
 
 
 def html_row(fields, alignments = None, header = False):
-	cell = 'th' if header else 'td'
 	ret = '<tr>'
-	for i in range(len(fields)):
-		ret += "<" + cell
-		if alignments is not None and len(alignments) > i:
-			if alignments[i] == "left": align = 'l'
-			elif alignments[i] == "center": align = 'c'
-			elif alignments[i] == "right": align = 'r'
-			else:
-				raise Exception("Internal error: Unknown alignment type "+alignments[i])
-			ret += ' class="' + align + '"'
-		ret += ">" + fields[i] + "</" + cell + ">"
+	for field in fields:
+		ret += cell(field).html(header)
 	ret += '</tr>\n'
 	return ret
 
 
+
+################################################################################
+class CellObj:
+	def __init__(self,	value, alignment, colspan):
+		valid_alignments = ["left","right","center"]
+		if alignment not in valid_alignments:
+			raise Exception("alignment for cell must be one of: "+" ".join(valid_alignments))
+		self.value = value
+		self.alignment = alignment
+		self.colspan = colspan
+
+	def html(self, header=False):
+		if header: ret = "<th"
+		else:      ret = "<td"
+
+		if self.alignment == "center" and not header:
+			ret += ' class="c"'
+		elif self.alignment == "right":
+			ret += ' class="r"'
+		elif self.alignment == "left" and header:
+			ret += ' class="l"'
+
+		if self.colspan > 1: ret += ' colspan="'+str(self.colspan)+'"'
+
+		ret += ">" + self.value
+		if header: ret += "</th>"
+		else:      ret += "</td>"
+		return ret
+
+def cell(value, alignment=None, colspan=1):
+	if isinstance(value, CellObj):
+		return value
+	if isinstance(value, int):
+		value = str(value)
+		if alignment is None: alignment = "right"
+	else:
+		if alignment is None: alignment = "left"
+	return CellObj(value, alignment, colspan)
 
 
 
@@ -509,38 +536,28 @@ class StardewSeed (StardewObject):
 		return [
 			"ID",
 			"Name",
-			"Growth Days",
-			"Seasons",
+			cell("Growth Days", colspan=2),
+			cell("Seasons", colspan=4),
 			"Price",
 			"Tool",
 			"Pass",
 			"Description",
 			]
 
-	@staticmethod
-	def display_fields_alignments():
-		return [
-			'right',
-			'left',
-			'right',
-			'left',
-			'right',
-			'center',
-			'center',
-			'left'
-		]
-
 	def display_fields_values(self):
 		growth_days = str(self.total_growth_days()) + ("+"+str(self.regrowth_days)) if self.regrowth_days is not None else ""
-		seasons = " ".join([ a[:2] for a in self.seasons])
 		return [
-			str(self.id),
+			self.id,
 			self.name,
-			growth_days,
-			seasons,
-			str(self.price),
-			"scythe" if self.need_scythe else "hand",
-			"impassible" if self.impassible else "",
+			self.total_growth_days(),
+			("+"+str(self.regrowth_days)) if self.regrowth_days is not None else "",
+			"Sp" if "spring" in self.seasons else "",
+			"Su" if "summer" in self.seasons else "",
+			"Fa" if "fall" in self.seasons else "",
+			"Wi" if "winter" in self.seasons else "",
+			self.price,
+			cell("scythe" if self.need_scythe else "hand", alignment="center"),
+			cell("impassible" if self.impassible else "", alignment="center"),
 			self.description
 			]
 
