@@ -10,6 +10,8 @@ DAYS_IN_SEASON = 28
 def main():
 	data = StardewData("Unpacked")
 
+	crops = map(lambda x: StardewCrop(data.seeds[x], data.everything), data.seeds)
+
 	print """<!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <style>
@@ -35,11 +37,10 @@ table { border-collapse: collapse; }
 <table>
 """
 	print html_row(
-		StardewSeed.display_fields_labels(),
+		StardewCrop.display_fields_labels(),
 		header = True)
-	for id in data.seeds:
-		seed = data.seeds[id]
-		print html_row(seed.display_fields_values())
+	for crop in crops:
+		print html_row(crop.display_fields_values())
 
 	"""
 	print data.crops.values()[0].html_header()
@@ -134,257 +135,6 @@ def cell(value, alignment=None, colspan=1):
 	else:
 		if alignment is None: alignment = "left"
 	return CellObj(value, alignment, colspan)
-
-
-
-################################################################################
-class StardewCrop:
-	def __init__(self, id, croprecord, objinfo_raw):
-
-		seed_obj_record = objinfo_raw[id]
-
-		self.seed_id = id
-		self.seed_name = seed_obj_record[0]
-		self.seed_half_price = seed_obj_record[1]
-		self.oUNKNOWN2 = seed_obj_record[2]
-		if self.oUNKNOWN2 != -300:
-			sys.stderr.write("Seed object {0} has unknown field of {1}, not -300".format(self.seed_id, self.oUNKNOWN2))
-
-			# "Basic -##" or "Seeds -##"
-		(self.seed_type_descriptor, self.seed_type_id) = seed_obj_record[3].split(" ")
-		if self.seed_type_descriptor != 'Seeds':
-			sys.stderr.write("Seed object {0} has unknown type {1}".format(self.seed_id, self.seed_type))
-			sys.exit(1)
-		if self.seed_type_id != '-74':
-			sys.stderr.write("Seed object {0} has unknown type UNKNOWN {1}".format(self.seed_id, self.seed_type_UNKNOWN))
-			sys.exit(1)
-
-		self.seed_description = seed_obj_record[4]
-
-		self.growth_days = [ int(x) for x in croprecord[0].split(" ") ] # Grow cylce? Days in each stage, starting with planted seed?
-		croprecord[0] # String of space seperated integers
-
-		seasons = croprecord[1].split(" ")
-		self.season_spring = True if 'spring' in seasons else False
-		self.season_summer = True if 'summer' in seasons else False
-		self.season_fall = True if 'fall' in seasons else False
-		self.season_winter = True if 'winter' in seasons else False
-
-		self.image_index = croprecord[2] # Number
-		self.plant_id = croprecord[3] # Plant ID
-		self.regrowth_days = croprecord[4]
-		if self.regrowth_days == -1:
-			self.regrowth_days = None
-		self.need_scytheqq = True if croprecord[5] == 1 else False
-
-		if croprecord[6] == 'false':
-			self.UNKNOWN6 = False
-			self.UNKNOWN6a = None
-			self.UNKNOWN6b = None
-			self.UNKNOWN6c = None
-			self.UNKNOWN6d = None
-		elif croprecord[6].find("true ") == 0:
-			(tmp1, tmp2, tmp3, tmp4, tmp5) = croprecord[6].split(" ")
-			self.UNKNOWN6 =  True
-			self.UNKNOWN6a = int(tmp2)
-			self.UNKNOWN6b = int(tmp3)
-			self.UNKNOWN6c = int(tmp4)
-			self.UNKNOWN6d = float(tmp5)
-		else:
-			sys.stderr.write("Unable to parse crop record field 6: "+croprecord[6])
-			sys.exit(1)
-
-		self.impassible = True if croprecord[7] == "true" else False
-
-		self.UNKNOWN8 = croprecord[8] # true/false + numbers if true?
-		if croprecord[8] == 'false':
-			self.UNKNOWN8 = False
-			self.UNKNOWN8a = None
-		elif croprecord[8].find("true ") == 0:
-			self.UNKNOWN8 = True
-			self.UNKNOWN8a = croprecord[8].split(" ")[1:]
-		else:
-			sys.stderr.write("Unable to parse crop record field 6: "+croprecord[6])
-
-		#print repr(objinfo_raw.keys())
-		#print repr(self.plant_id)
-		#sys.exit(1)
-
-		plant_obj_record = objinfo_raw[self.plant_id]
-		self.crop_name = plant_obj_record[0]
-		self.plant_base_sell_price = plant_obj_record[1]
-		self.plant_UNKNOWN2 = plant_obj_record[2] # int?
-
-			# "Basic -##" or "Seeds -##"
-		(self.plant_type_descriptor, self.plant_type_id) = plant_obj_record[3].split(" ")
-
-		self.plant_description = plant_obj_record[4] # 
-
-	def harvests(self, days):
-		""" Over days, how many harvests from initial planting
-
-		Assumes you replant when you harvest, if it's not a repeating plant
-		"""
-		if self.regrowth_days is not None:
-			return int( math.ceil( (days-self.total_growth_days())/self.regrowth_days ) )
-		else:
-			return int( math.floor( (days-1) / self.total_growth_days()))
-
-	def total_growth_days(self):
-		return sum(self.growth_days)
-
-	def seed_price(self):
-		return self.seed_half_price*2
-
-	def num_seasons(self):
-		return ((1 if self.season_spring else 0) +
-			(1 if self.season_summer else 0) +
-			(1 if self.season_fall else 0) +
-			(1 if self.season_winter else 0))
-
-	def seasonal_revenue(self):
-		days = DAYS_IN_SEASON * self.num_seasons()
-		harvests = self.harvests(days)
-		return self.plant_base_sell_price * harvests / self.num_seasons()
-
-	def seasonal_expense(self):
-		if self.regrowth_days is not None:
-			return self.seed_price()
-		else:
-			days = DAYS_IN_SEASON * self.num_seasons()
-			harvests = self.harvests(days)
-			return self.seed_price() * harvests / self.num_seasons()
-		
-	def seasonal_profit(self):
-		return self.seasonal_revenue() - self.seasonal_expense()
-
-	def __cmp__(self, other):
-		if self.season_spring:
-			if not other.season_spring: return -1
-			else: return other.seasonal_profit() - self.seasonal_profit()
-		if other.season_spring: return 1
-		if self.season_summer:
-			if not other.season_summer: return -1
-			else: return other.seasonal_profit() - self.seasonal_profit()
-		if other.season_summer: return 1
-		if self.season_fall:
-			if not other.season_fall: return -1
-			else: return other.seasonal_profit() - self.seasonal_profit()
-		if other.season_fall: return 1
-		if self.season_winter:
-			if not other.season_winter: return -1
-			else: return other.seasonal_profit() - self.seasonal_profit()
-		if other.season_winter: return 1
-		return other.seasonal_profit() - self.seasonal_profit()
-
-	def html_header(self):
-		fields = [
-			"P ID / S ID",
-			"Crop / Seed",
-			"Growth Days",
-			"Harvests/28",
-			"Revenue",
-			"Expense",
-			"Profit",
-			"Seasons",
-			"Image",
-			"Harvest",
-			"Unk6",
-			"6a",
-			"6b",
-			"6c",
-			"6d",
-			"Pass",
-			"Unk8",
-			"Seed price",
-			"",
-			"Sell Price",
-			"pUnk2",
-			"Plant Type Name",
-			"Type#",
-			"Seed Description",
-			"Plant Description",
-			]
-		return "<tr><th>"+"</th><th>".join(fields)+"</th></tr>\n";
-
-
-	def html_body(self):
-		seasons = []
-		if self.season_spring: seasons.append("spring")
-		if self.season_summer: seasons.append("summer")
-		if self.season_fall: seasons.append("fall")
-		if self.season_winter: seasons.append("winter")
-
-		growth = str(self.total_growth_days())
-		if self.regrowth_days is not None:
-			growth += "+"+str(self.regrowth_days)
-		fields = [
-			str(self.plant_id) + " " + str(self.seed_id),
-			self.crop_name + " / " + self.seed_name,
-			growth,
-			self.harvests(DAYS_IN_SEASON),
-			self.seasonal_revenue(),
-			self.seasonal_expense(),
-			self.seasonal_profit(),
-			", ".join(seasons),
-			self.image_index,
-			"scythe" if self.need_scytheqq else "hand",
-			self.UNKNOWN6,
-			self.UNKNOWN6a if self.UNKNOWN6a is not None else "",
-			self.UNKNOWN6b if self.UNKNOWN6b is not None else "",
-			self.UNKNOWN6c if self.UNKNOWN6c is not None else "",
-			self.UNKNOWN6d if self.UNKNOWN6d is not None else "",
-			"impassible" if self.impassible else "",
-			self.UNKNOWN8a,
-			self.seed_price(),
-			"",
-			str(self.plant_base_sell_price),
-			self.plant_UNKNOWN2,
-			self.plant_type_descriptor,
-			self.plant_type_id,
-			self.seed_description,
-			self.plant_description,
-			]
-		newfields = []
-		for f in fields:
-			if isinstance(f, (int,float)):
-				newfields.append('<td class="n">'+str(f)+"</td>")
-			else:
-				newfields.append('<td>'+str(f)+"</td>")
-		return "<tr>"+"".join(newfields)+"</td>\n"
-
-	def __str__(self):
-		return "\t".join([ str(x) for x in [
-			self.plant_id,
-			self.crop_name,
-			self.seed_id,
-			self.seed_name,
-			self.growth_days,
-			self.regrowth_days,
-			"spring" if self.season_spring else "",
-			"summer" if self.season_summer else "",
-			"fall" if self.season_fall else "",
-			"winter" if self.season_winter else "",
-			#self.image_index,
-			"scythe" if self.need_scytheqq else "hand",
-			self.UNKNOWN6,
-			"(",
-			self.UNKNOWN6a,
-			self.UNKNOWN6b,
-			self.UNKNOWN6c,
-			self.UNKNOWN6d,
-			")",
-			"impassible" if self.impassible else "",
-			self.UNKNOWN8a,
-			"->",
-			str(self.plant_base_sell_price)+"g",
-			self.plant_UNKNOWN2,
-			self.plant_type,
-			self.plant_type_UNKNOWN,
-			#self.plant_description,
-			]
-			])
-
 
 
 
@@ -508,10 +258,10 @@ class StardewSeed (StardewObject):
 
 	def num_seasons(self):
 		""" How many seasons can this crop grow in? """
-		return ((1 if self.season_spring else 0) +
-			(1 if self.season_summer else 0) +
-			(1 if self.season_fall else 0) +
-			(1 if self.season_winter else 0))
+		return ((1 if "spring" in self.seasons else 0)+
+			(1 if "summer" in self.seasons else 0)+
+			(1 if "fall" in self.seasons else 0)+
+			(1 if "winter" in self.seasons else 0))
 
 #	"""
 #	def seasonal_revenue(self):
@@ -661,6 +411,62 @@ class StardewSeed (StardewObject):
 #		"""
 
 
+################################################################################
+class StardewCrop:
+	def __init__(self, seed, all_objs):
+		self.seed = seed
+		spawn = seed.spawns
+		if len(spawn) != 1:
+			raise Exception("Unexpected: seed {0} doesn't produce exactly one result: {1}".format(seed.name, spawn))
+		self.spawn = all_objs[spawn[0]]
+
+	def seasonal_revenue(self):
+		seasons = self.seed.num_seasons()
+		days = DAYS_IN_SEASON * seasons
+		harvests = self.seed.harvests(days)
+		return self.spawn.sale_price * harvests / seasons
+
+	def seasonal_expense(self):
+		if self.seed.regrowth_days is not None:
+			return self.seed.price
+		else:
+			seasons = self.seed.num_seasons()
+			days = DAYS_IN_SEASON * seasons
+			harvests = self.seed.harvests(days)
+			return self.seed.price * harvests / seasons
+		
+	def seasonal_profit(self):
+		return self.seasonal_revenue() - self.seasonal_expense()
+
+	@staticmethod
+	def display_fields_labels():
+		return [
+			"Profit",
+			cell("Name", colspan=2),
+			cell("Growth Days", colspan=2),
+			cell("Seasons", colspan=4),
+			"Price",
+			"Sale Price",
+			"Days",
+			"Harvests",
+			]
+
+	def display_fields_values(self):
+		return [
+			self.seasonal_profit(),
+			self.seed.name,
+			self.spawn.name,
+			self.seed.total_growth_days(),
+			("+"+str(self.seed.regrowth_days)) if self.seed.regrowth_days is not None else "",
+			"Sp" if "spring" in self.seed.seasons else "",
+			"Su" if "summer" in self.seed.seasons else "",
+			"Fa" if "fall" in self.seed.seasons else "",
+			"Wi" if "winter" in self.seed.seasons else "",
+			self.seed.price,
+			self.spawn.sale_price,
+			DAYS_IN_SEASON * self.seed.num_seasons(),
+			self.seed.harvests(DAYS_IN_SEASON * self.seed.num_seasons()),
+			]
 
 
 
