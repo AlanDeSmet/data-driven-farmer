@@ -5,7 +5,7 @@ A tool for generating reports about Stardew Valley.
 
 At the moment only generates one report: a list of crop profitability, sorted by season and profitability.
 
-This is not terribly user friendly software, sorry. You can the the most recent report I generated in crop-profit.html .
+This is not terribly user friendly software, sorry. [You can the the most recent report I generated in crop-profit.html.](crop-profit.html)
 
 Dependencies
 ------------
