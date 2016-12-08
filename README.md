@@ -19,3 +19,24 @@ You'll need an unpacked copy of the Stardew Valley data files.  Check out https:
 
 Once you've got ContentUnpacked, drop it into the same directory as this program with the name "Unpacked".  Then just run "python data-driven-farmer > crop-profit.html".
 
+Optionally install the font "Scaly Sans", available for free at https://m.reddit.com/r/UnearthedArcana/comments/3vpphx/5e\_font\_package\_embeddable\_cc\_edition/d1imhc4 
+
+License
+-------
+
+The Data Driven Farmer
+
+Copyright 2016 Alan De Smet  chaos@highprogrammer.com
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see http://www.gnu.org/licenses/
