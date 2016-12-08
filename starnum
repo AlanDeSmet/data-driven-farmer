@@ -1,4 +1,5 @@
 #! /usr/bin/python
+# coding=utf-8
 import yaml
 import sys
 import re
@@ -479,10 +480,9 @@ class StardewCrop:
 			cell("Growth Days", colspan=2),
 			cell("Seasons", colspan=4),
 			"Price",
-			"Sale Price",
+			cell("Sale Price", colspan=5),
 			"Days",
 			"Harvests",
-			"#/Hrvst",
 			]
 
 	def display_fields_values(self):
@@ -499,9 +499,12 @@ class StardewCrop:
 			"Wi" if "winter" in self.seed.seasons else "",
 			self.seed.price,
 			self.spawn.sale_price,
+			'×',
+			str(self.seed.num_created),
+			'=',
+			self.one_harvest_revenue(),
 			DAYS_IN_SEASON * self.seed.num_seasons(),
 			self.seed.harvests(DAYS_IN_SEASON * self.seed.num_seasons()),
-			str(self.seed.num_created),
 			]
 
 
