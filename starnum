@@ -221,14 +221,14 @@ class StardewSeed (StardewObject):
 
 		if str_unknown6 == 'false':
 			self.UNKNOWN6 = False
-			self.UNKNOWN6a = None
+			self.num_created = 1
 			self.UNKNOWN6b = None
 			self.UNKNOWN6c = None
 			self.UNKNOWN6d = None
 		elif str_unknown6.find("true ") == 0:
 			(tmp1, tmp2, tmp3, tmp4, tmp5) = str_unknown6.split(" ")
 			self.UNKNOWN6 =  True
-			self.UNKNOWN6a = int(tmp2)
+			self.num_created = int(tmp2)
 			self.UNKNOWN6b = int(tmp3)
 			self.UNKNOWN6c = int(tmp4)
 			self.UNKNOWN6d = float(tmp5)
@@ -425,11 +425,14 @@ class StardewCrop:
 			raise Exception("Unexpected: seed {0} doesn't produce exactly one result: {1}".format(seed.name, spawn))
 		self.spawn = all_objs[spawn[0]]
 
+	def one_harvest_revenue(self):
+		return self.spawn.sale_price * self.seed.num_created
+
 	def seasonal_revenue(self):
 		seasons = self.seed.num_seasons()
 		days = DAYS_IN_SEASON * seasons
 		harvests = self.seed.harvests(days)
-		return self.spawn.sale_price * harvests / seasons
+		return self.one_harvest_revenue() * harvests / seasons
 
 	def seasonal_expense(self):
 		if self.seed.regrowth_days is not None:
@@ -446,7 +449,7 @@ class StardewCrop:
 	def greenhouse_profit(self, seasons):
 		days = DAYS_IN_SEASON * seasons
 		harvests = self.seed.harvests(days)
-		revenue = self.spawn.sale_price * harvests / seasons
+		revenue = self.one_harvest_revenue() * harvests / seasons
 
 		if self.seed.regrowth_days is not None:
 			expense = self.seed.price
@@ -479,6 +482,7 @@ class StardewCrop:
 			"Sale Price",
 			"Days",
 			"Harvests",
+			"#/Hrvst",
 			]
 
 	def display_fields_values(self):
@@ -497,6 +501,7 @@ class StardewCrop:
 			self.spawn.sale_price,
 			DAYS_IN_SEASON * self.seed.num_seasons(),
 			self.seed.harvests(DAYS_IN_SEASON * self.seed.num_seasons()),
+			str(self.seed.num_created),
 			]
 
 
